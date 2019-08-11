@@ -18,8 +18,9 @@ class PostController extends Controller
      */
     public function index()
     {
-        $posts = Post::with('post_images', 'comments')->orderBy('created_at', 'desc')->get();
-        return response()->json(['error' => false, 'data' => $posts]);
+        $posts = Post::with('post_images')->orderBy('created_at', 'desc')->get();
+        $postsComments = Post::with('comments')->orderBy('created_at', 'desc')->get();
+        return response()->json(['error' => false, 'posts' => $posts, 'postsComments' => $postsComments]);
     }
 
     /**
@@ -29,7 +30,7 @@ class PostController extends Controller
      */
     public function create()
     {
-        //
+        return view('post.create');
     }
 
     /**
@@ -40,7 +41,32 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $user = Auth::user();
+        $title = $request->title;
+        $body = $request->body;
+        $images = $request->images;
+
+        //creating post
+        $post = Post::create([
+        'title' => $title,
+        'body' => $body,
+        'user_id' => $user->id,
+        ]);
+
+        //storing images
+        foreach($images as $image)
+        {
+            $imagepath = Storage::disk('uploads')->put($user->email.'/posts', $image);
+            PostImage::create([
+                'post_image_caption' => $title,
+                'post_image_path' => '/uploads'.$imagepath,
+                'post_id' => $post->id
+            ]);
+        }
+
+        return response()->json(['error' => false, 'data' => $post]);
+
+
     }
 
     /**
